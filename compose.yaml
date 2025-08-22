@@ -1,0 +1,37 @@
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:17.5                        # Always pin versions in production
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PW}
+      - POSTGRES_DB=${POSTGRES_DB}              # Optional (specify default database instead of $POSTGRES_DB)
+    volumes:
+      - ./scripts:/docker-entrypoint-initdb.d/  # Schema-only script
+      - pgdata:/var/lib/postgresql/data         # Persistent data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped                     # Prefer over "always"
+    healthcheck:                                # Add healthcheck
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4:8.7                   # Avoid "latest" tag
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_MAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PW}
+    volumes:
+      # Only files under the mapped storage directory 
+      # are accessible for upload/restore in pgAdmin's web interface
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  pgadmin_data:
